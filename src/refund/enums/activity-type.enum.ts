@@ -1,0 +1,22 @@
+export enum ActivityType {
+  PRESCRIPTION_CREATED = 'prescription_created',
+  PRESCRIPTION_UPDATED = 'prescription_updated',
+  KIT_CHANGED = 'kit_changed',
+  TIMELINE_UPDATED = 'timeline_updated',
+  ORDER_PLACED = 'order_placed',
+  ORDER_DELIVERED = 'order_delivered',
+  ORDER_CANCELLED = 'order_cancelled',
+  REFUND_REQUESTED = 'refund_requested',
+  REFUND_APPROVED = 'refund_approved',
+  REFUND_REJECTED = 'refund_rejected',
+  REFUND_PROCESSED = 'refund_processed',
+  CALL_SCHEDULED = 'call_scheduled',
+  CALL_COMPLETED = 'call_completed',
+  APPOINTMENT_SCHEDULED = 'appointment_scheduled',
+  APPOINTMENT_COMPLETED = 'appointment_completed',
+  PROFILE_UPDATED = 'profile_updated',
+  BANK_DETAILS_ADDED = 'bank_details_added',
+  COMMUNICATION_SENT = 'communication_sent',
+  NOTE_ADDED = 'note_added',
+}
+
