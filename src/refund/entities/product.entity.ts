@@ -36,6 +36,9 @@ export class Product {
   @Column({ type: 'boolean', default: false })
   isKitProduct: boolean;
 
+  @Column({ type: 'boolean', default: false })
+  isMandatory: boolean;
+
   @Column({ type: 'int', default: 30 })
   durationDays: number;
 

@@ -29,7 +29,7 @@ export class CustomerController {
   @Get()
   async getAllCustomers() {
     return await this.customerRepository.find({
-      relations: ['orders', 'tickets'],
+      relations: ['tickets'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -38,7 +38,7 @@ export class CustomerController {
   async getCustomer(@Param('id') id: string) {
     return await this.customerRepository.findOne({
       where: { id },
-      relations: ['orders', 'tickets'],
+      relations: ['tickets'],
     });
   }
 }

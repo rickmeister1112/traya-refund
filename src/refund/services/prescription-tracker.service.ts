@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CustomerPrescription, OrderHistory } from '../entities';
+import { KitCalculator } from '../utils/kit-calculator.util';
 
 @Injectable()
 export class PrescriptionTrackerService {
@@ -35,9 +36,6 @@ export class PrescriptionTrackerService {
       return;
     }
 
-    const deliveredKits = new Set(deliveredOrders.map((o) => o.kitNumber));
-    const deliveredKitCount = deliveredKits.size;
-
     if (!prescription.planStartedAt) {
       const firstDelivery = deliveredOrders[0].deliveredAt;
       prescription.planStartedAt = firstDelivery;
@@ -49,15 +47,24 @@ export class PrescriptionTrackerService {
       prescription.expectedCompletionDate = expectedDate;
     }
 
+    // Calculate delivered kit numbers based on delivery dates
+    const deliveredKits = KitCalculator.getDeliveredKitNumbers(
+      deliveredOrders,
+      prescription.planStartedAt,
+      30,
+    );
+    const deliveredKitCount = deliveredKits.size;
+
     if (deliveredKitCount >= prescription.requiredKits) {
-
-      const requiredKitNumbers = Array.from(deliveredKits)
-        .sort((a, b) => a - b)
-        .slice(0, prescription.requiredKits);
-
-      const lastRequiredKitOrders = deliveredOrders.filter((o) =>
-        requiredKitNumbers.includes(o.kitNumber),
+      // Get kit groups to find last required kit
+      const kitGroups = KitCalculator.groupOrdersByKit(
+        deliveredOrders,
+        prescription.planStartedAt,
+        30,
       );
+
+      // Get the last required kit's orders
+      const lastRequiredKitOrders = kitGroups.get(prescription.requiredKits) || [];
 
       if (lastRequiredKitOrders.length > 0) {
         const lastDelivery =
@@ -103,9 +110,16 @@ export class PrescriptionTrackerService {
       },
     });
 
-    const deliveredKitsCount = new Set(
-      deliveredOrders.map((o) => o.kitNumber),
-    ).size;
+    // Calculate delivered kit count using date-based logic
+    let deliveredKitsCount = 0;
+    if (prescription.planStartedAt) {
+      const deliveredKits = KitCalculator.getDeliveredKitNumbers(
+        deliveredOrders,
+        prescription.planStartedAt,
+        30,
+      );
+      deliveredKitsCount = deliveredKits.size;
+    }
 
     let daysUntilExpectedCompletion: number | null = null;
     let isOnTrack = true;

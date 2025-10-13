@@ -9,9 +9,17 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Customer } from './customer.entity';
-import { Order } from './order.entity';
-import { PaymentMode } from '../enums';
+import { PaymentMode, TransactionType } from '../enums';
 
+/**
+ * Transaction Entity (Legacy)
+ * 
+ * NOTE: This is the legacy transaction tracking entity.
+ * For new payment tracking, use PaymentTransaction entity instead.
+ * 
+ * This entity is kept for backward compatibility and summary-level tracking.
+ * Consider migrating to PaymentTransaction for detailed payment event tracking.
+ */
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
@@ -27,13 +35,6 @@ export class Transaction {
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
-  @Column({ type: 'uuid', nullable: true })
-  orderId: string;
-
-  @ManyToOne(() => Order)
-  @JoinColumn({ name: 'orderId' })
-  order: Order;
-
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount: number;
 
@@ -43,8 +44,12 @@ export class Transaction {
   })
   paymentMode: PaymentMode;
 
-  @Column({ type: 'varchar', length: 50 })
-  transactionType: string;
+  // Updated to use enum instead of plain string
+  @Column({
+    type: 'enum',
+    enum: TransactionType,
+  })
+  transactionType: TransactionType;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   paymentGateway: string;

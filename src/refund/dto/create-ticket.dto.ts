@@ -6,10 +6,6 @@ export class CreateTicketDto {
   @IsUUID()
   customerId: string;
 
-  @IsOptional()
-  @IsUUID()
-  orderId?: string;
-
   @IsNotEmpty()
   @IsEnum(TicketSource)
   source: TicketSource;

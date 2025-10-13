@@ -10,6 +10,7 @@ import {
   PrescriptionProduct,
 } from '../entities';
 import { KitValidationService } from './kit-validation.service';
+import { KitCalculator } from '../utils/kit-calculator.util';
 
 export interface EligibilityResult {
   isEligible: boolean;
@@ -109,10 +110,12 @@ export class EligibilityEngineV2Service {
     );
 
     const genuineKitCount = kitValidation.genuineKits.length;
-    const deliveredKits = new Set(
-      orderHistory
-        .filter((order) => order.isDelivered && !order.isFreeKit)
-        .map((order) => order.kitNumber),
+    
+    // Calculate kit numbers based on delivery dates
+    const deliveredKits = KitCalculator.getDeliveredKitNumbers(
+      orderHistory.filter((order) => !order.isFreeKit),
+      prescription.planStartedAt,
+      30, // Default 30 days per kit
     );
     const deliveredKitCount = deliveredKits.size;
 
@@ -157,13 +160,18 @@ export class EligibilityEngineV2Service {
 
     if (deliveredKitCount >= requiredKits) {
 
+      // Group orders by calculated kit number and get first delivery date for each kit
+      const kitGroups = KitCalculator.groupOrdersByKit(
+        orderHistory.filter((o) => o.isDelivered),
+        prescription.planStartedAt,
+        30,
+      );
+      
       const kitDeliveryDates = Array.from(deliveredKits)
         .sort((a, b) => a - b)
         .slice(0, requiredKits)
         .map((kitNum) => {
-          const kitOrders = orderHistory.filter(
-            (o) => o.kitNumber === kitNum && o.isDelivered,
-          );
+          const kitOrders = kitGroups.get(kitNum) || [];
           return kitOrders.length > 0
             ? new Date(kitOrders[0].deliveredAt)
             : null;
@@ -209,10 +217,14 @@ export class EligibilityEngineV2Service {
     }
 
     if (deliveredKitCount >= requiredKits) {
-
-      const lastRequiredKitOrders = orderHistory.filter(
-        (o) => o.kitNumber === requiredKits && !o.isFreeKit,
+      // Find orders that belong to the last required kit based on delivery date
+      const kitGroups = KitCalculator.groupOrdersByKit(
+        orderHistory.filter((o) => o.isDelivered && !o.isFreeKit),
+        prescription.planStartedAt,
+        30,
       );
+      
+      const lastRequiredKitOrders = kitGroups.get(requiredKits) || [];
 
       if (lastRequiredKitOrders.length > 0) {
         const lastKitOrderDate = new Date(lastRequiredKitOrders[0].orderedAt);
@@ -297,17 +309,29 @@ export class EligibilityEngineV2Service {
       where: {
         customerId,
         isDelivered: false,
-
       },
+      relations: ['prescription'],
     });
 
-    return undeliveredOrders.map((order) => ({
-      id: order.id,
-      productId: order.productId,
-      kitNumber: order.kitNumber,
-      amount: order.totalAmount || 0,
-      orderedAt: order.orderedAt,
-    }));
+    return undeliveredOrders.map((order) => {
+      // Calculate kit number if prescription has started
+      let kitNumber = 0;
+      if (order.prescription?.planStartedAt && order.orderedAt) {
+        kitNumber = KitCalculator.calculateKitNumber(
+          order.orderedAt,
+          order.prescription.planStartedAt,
+          30,
+        );
+      }
+
+      return {
+        id: order.id,
+        productId: order.productId,
+        kitNumber,
+        amount: order.totalAmount || 0,
+        orderedAt: order.orderedAt,
+      };
+    });
   }
 
   async getRefundCalculationBreakdown(customerId: string): Promise<{
@@ -326,6 +350,7 @@ export class EligibilityEngineV2Service {
         isVoid: false,
         isFreeKit: false,
       },
+      relations: ['prescription'],
     });
 
     const deliveredOrdersTotal = deliveredOrders.reduce(
@@ -354,12 +379,24 @@ export class EligibilityEngineV2Service {
       deliveredOrdersTotal,
       previousRefundsTotal,
       netRefundAmount,
-      deliveredOrders: deliveredOrders.map((o) => ({
-        id: o.id,
-        kitNumber: o.kitNumber,
-        amount: o.totalAmount,
-        deliveredAt: o.deliveredAt,
-      })),
+      deliveredOrders: deliveredOrders.map((o) => {
+        // Calculate kit number based on delivery date
+        let kitNumber = 0;
+        if (o.prescription?.planStartedAt && o.deliveredAt) {
+          kitNumber = KitCalculator.calculateKitNumber(
+            o.deliveredAt,
+            o.prescription.planStartedAt,
+            30,
+          );
+        }
+        
+        return {
+          id: o.id,
+          kitNumber,
+          amount: o.totalAmount,
+          deliveredAt: o.deliveredAt,
+        };
+      }),
       previousRefunds: refundTransactions.map((r) => ({
         transactionNumber: r.transactionNumber,
         amount: r.amount,
@@ -379,23 +416,47 @@ export class EligibilityEngineV2Service {
     orderedProducts: string[];
     missingProducts: string[];
   }> {
-
+    // Get all required products from prescription
     const prescribedProducts = await this.prescriptionProductRepository.find({
       where: {
         prescriptionId,
-        kitNumber,
         isRequired: true,
       },
       relations: ['product'],
     });
 
-    const orderedProducts = await this.orderHistoryRepository.find({
+    // Get prescription to access start date
+    const prescription = await this.prescriptionRepository.findOne({
+      where: { id: prescriptionId },
+    });
+
+    if (!prescription || !prescription.planStartedAt) {
+      return {
+        isComplete: false,
+        prescribedProducts: [],
+        orderedProducts: [],
+        missingProducts: [],
+      };
+    }
+
+    // Get all orders for this prescription
+    const allOrders = await this.orderHistoryRepository.find({
       where: {
         prescriptionId,
-        kitNumber,
         isVoid: false,
+        isDelivered: true,
       },
       relations: ['product'],
+    });
+
+    // Filter orders that belong to this calculated kit number
+    const orderedProducts = allOrders.filter((order) => {
+      const calculatedKit = KitCalculator.calculateKitNumber(
+        order.deliveredAt,
+        prescription.planStartedAt,
+        30,
+      );
+      return calculatedKit === kitNumber;
     });
 
     const prescribedProductIds = prescribedProducts.map((pp) => pp.productId);

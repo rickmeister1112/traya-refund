@@ -37,7 +37,7 @@ export class AppointmentService {
     slotTime: Date;
     callPurpose: string;
     assignedTo?: string;
-    assignedToAgentId?: string;
+    assignedToUserId?: string;
     assignedToDoctorId?: string;
     assignedToHairCoachId?: string;
     notes?: string;

@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { Customer } from './customer.entity';
 import { Doctor } from './doctor.entity';
-import { Agent } from './agent.entity';
+import { User } from './user.entity';
 import { HairCoach } from './hair-coach.entity';
 
 @Entity('appointments')
@@ -49,11 +49,11 @@ export class Appointment {
   assignedToDoctor: Doctor;
 
   @Column({ type: 'uuid', nullable: true })
-  assignedToAgentId: string;
+  assignedToUserId: string;
 
-  @ManyToOne(() => Agent, (agent) => agent.appointments, { nullable: true })
-  @JoinColumn({ name: 'assignedToAgentId' })
-  assignedToAgent: Agent;
+  @ManyToOne(() => User, (user) => user.appointments, { nullable: true })
+  @JoinColumn({ name: 'assignedToUserId' })
+  assignedToUser: User;
 
   @Column({ type: 'uuid', nullable: true })
   assignedToHairCoachId: string;

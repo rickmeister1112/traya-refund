@@ -9,7 +9,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { TicketService, EligibilityEngineService, AppointmentService, CommunicationService } from '../services';
+import { TicketService, AppointmentService, CommunicationService } from '../services';
 import { EligibilityEngineV2Service } from '../services/eligibility-engine-v2.service';
 import {
   CreateTicketDto,
@@ -26,7 +26,6 @@ import { TicketCategory, TicketStatus } from '../enums';
 export class TicketController {
   constructor(
     private readonly ticketService: TicketService,
-    private readonly eligibilityEngineService: EligibilityEngineService,
     private readonly eligibilityEngineV2Service: EligibilityEngineV2Service,
     private readonly appointmentService: AppointmentService,
     private readonly communicationService: CommunicationService,

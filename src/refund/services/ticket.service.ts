@@ -7,7 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   Ticket,
-  Order,
   Customer,
   BankDetails,
   Transaction,
@@ -19,8 +18,8 @@ import {
   TicketSubcategory,
   RejectionReason,
   PaymentMode,
+  TransactionType,
 } from '../enums';
-import { EligibilityEngineService } from './eligibility-engine.service';
 import { EligibilityEngineV2Service } from './eligibility-engine-v2.service';
 import { FinanceProcessingDto } from '../dto/finance-processing.dto';
 
@@ -29,21 +28,17 @@ export class TicketService {
   constructor(
     @InjectRepository(Ticket)
     private ticketRepository: Repository<Ticket>,
-    @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
     @InjectRepository(Customer)
     private customerRepository: Repository<Customer>,
     @InjectRepository(BankDetails)
     private bankDetailsRepository: Repository<BankDetails>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
-    private eligibilityEngineService: EligibilityEngineService,
     private eligibilityEngineV2Service: EligibilityEngineV2Service,
   ) {}
 
   async createTicket(data: {
     customerId: string;
-    orderId?: string;
     source: TicketSource;
     reason: string;
     raisedBy?: string;
@@ -98,7 +93,7 @@ export class TicketService {
     const ticket = this.ticketRepository.create({
       ticketNumber,
       customerId: data.customerId,
-      orderId: data.orderId,
+      prescriptionId: eligibilityResult.prescriptionId,
       category,
       subcategory,
       source: data.source,
@@ -124,7 +119,7 @@ export class TicketService {
   async getTicket(ticketId: string): Promise<Ticket> {
     const ticket = await this.ticketRepository.findOne({
       where: { id: ticketId },
-      relations: ['customer', 'order', 'appointments', 'communications'],
+      relations: ['customer', 'prescription', 'appointments', 'communications'],
     });
 
     if (!ticket) {
@@ -149,7 +144,7 @@ export class TicketService {
 
     return await this.ticketRepository.find({
       where,
-      relations: ['customer', 'order'],
+      relations: ['customer', 'prescription'],
       order: { createdAt: 'DESC' },
     });
   }
@@ -311,7 +306,7 @@ export class TicketService {
         customerId: ticket.customerId,
         amount: refundAmount,
         paymentMode: PaymentMode.PREPAID,
-        transactionType: 'refund',
+        transactionType: TransactionType.REFUND, // Refund to customer
         isRefund: true,
         isProcessed: true,
         processedAt: new Date(),

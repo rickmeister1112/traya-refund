@@ -47,7 +47,6 @@ export class PrescriptionController {
       treatmentPlanId: string;
       products: Array<{
         productId: string;
-        kitNumber: number;
         quantity: number;
         isRequired: boolean;
         frequency?: string;
@@ -96,7 +95,6 @@ export class PrescriptionController {
       return this.prescriptionProductRepository.create({
         prescriptionId: savedPrescription.id,
         productId: p.productId,
-        kitNumber: p.kitNumber,
         quantity: p.quantity || 1,
         isRequired: p.isRequired !== false,
         frequency: p.frequency,
@@ -133,7 +131,6 @@ export class PrescriptionController {
     return await this.prescriptionProductRepository.find({
       where: { prescriptionId },
       relations: ['product'],
-      order: { kitNumber: 'ASC' },
     });
   }
 
@@ -164,7 +161,6 @@ export class PrescriptionController {
       prescribedByDoctorId?: string;
       products?: Array<{
         productId: string;
-        kitNumber: number;
         quantity: number;
         isRequired: boolean;
         frequency?: string;
@@ -216,7 +212,6 @@ export class PrescriptionController {
         return this.prescriptionProductRepository.create({
           prescriptionId: id,
           productId: p.productId,
-          kitNumber: p.kitNumber,
           quantity: p.quantity || 1,
           isRequired: p.isRequired !== false,
           frequency: p.frequency,

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { OrderHistory, PrescriptionProduct } from '../entities';
+import { OrderHistory, PrescriptionProduct, CustomerPrescription } from '../entities';
+import { KitCalculator } from '../utils/kit-calculator.util';
 
 export interface KitValidationResult {
   kitNumber: number;
@@ -20,6 +21,8 @@ export class KitValidationService {
     private orderHistoryRepository: Repository<OrderHistory>,
     @InjectRepository(PrescriptionProduct)
     private prescriptionProductRepository: Repository<PrescriptionProduct>,
+    @InjectRepository(CustomerPrescription)
+    private prescriptionRepository: Repository<CustomerPrescription>,
   ) {}
 
   async validateKitOrdering(
@@ -30,6 +33,18 @@ export class KitValidationService {
     invalidKits: number[];
     validationDetails: KitValidationResult[];
   }> {
+    // Get prescription to access plan start date
+    const prescription = await this.prescriptionRepository.findOne({
+      where: { id: prescriptionId },
+    });
+
+    if (!prescription || !prescription.planStartedAt) {
+      return {
+        genuineKits: [],
+        invalidKits: [],
+        validationDetails: [],
+      };
+    }
 
     const orders = await this.orderHistoryRepository.find({
       where: {
@@ -41,22 +56,7 @@ export class KitValidationService {
       order: { deliveredAt: 'ASC' },
     });
 
-    const prescriptionProducts = await this.prescriptionProductRepository.find({
-      where: { prescriptionId },
-      order: { kitNumber: 'ASC' },
-    });
-
-    const kitExhaustionDays = this.calculateKitExhaustionDays(prescriptionProducts);
-
-    const kitOrders = new Map<number, Date>();
-    orders.forEach((order) => {
-      if (!kitOrders.has(order.kitNumber)) {
-        kitOrders.set(order.kitNumber, new Date(order.deliveredAt));
-      }
-    });
-
-    const firstKitDate = kitOrders.get(1);
-    if (!firstKitDate) {
+    if (orders.length === 0) {
       return {
         genuineKits: [],
         invalidKits: [],
@@ -64,48 +64,53 @@ export class KitValidationService {
       };
     }
 
+    const prescriptionProducts = await this.prescriptionProductRepository.find({
+      where: { prescriptionId },
+    });
+
+    const kitExhaustionDays = this.calculateKitExhaustionDays(prescriptionProducts);
+
+    // Group orders by calculated kit number
+    const kitOrders = KitCalculator.groupOrdersByKit(
+      orders,
+      prescription.planStartedAt,
+      kitExhaustionDays,
+    );
+
+    const firstKitDate = prescription.planStartedAt;
+
     const validationDetails: KitValidationResult[] = [];
     const genuineKits: number[] = [];
     const invalidKits: number[] = [];
 
-    kitOrders.forEach((actualOrderDate, kitNumber) => {
-      if (kitNumber === 1) {
-
-        genuineKits.push(1);
-        validationDetails.push({
-          kitNumber: 1,
-          isGenuine: true,
-          expectedOrderDate: firstKitDate,
-          actualOrderDate: firstKitDate,
-          daysEarly: 0,
-          daysLate: 0,
-          isWithinWindow: true,
-        });
-        return;
-      }
-
-      const expectedDate = new Date(firstKitDate);
-      expectedDate.setDate(
-        expectedDate.getDate() + (kitNumber - 1) * kitExhaustionDays,
+    kitOrders.forEach((kitOrdersList, kitNumber) => {
+      // Get the first order for this kit (earliest delivery)
+      const actualOrderDate = new Date(kitOrdersList[0].deliveredAt);
+      
+      // Use KitCalculator to check if order is on time
+      const validationCheck = KitCalculator.isOrderOnTime(
+        actualOrderDate,
+        prescription.planStartedAt,
+        kitNumber,
+        kitExhaustionDays,
+        5, // allowedDaysEarly
+        7, // allowedDaysLate
       );
 
-      const daysDiff = this.getDaysDifference(expectedDate, actualOrderDate);
-      const daysEarly = daysDiff < 0 ? Math.abs(daysDiff) : 0;
-      const daysLate = daysDiff > 0 ? daysDiff : 0;
-
-      const isWithinWindow = Math.abs(daysDiff) <= 7;
+      const daysEarly = validationCheck.daysDifference < 0 ? Math.abs(validationCheck.daysDifference) : 0;
+      const daysLate = validationCheck.daysDifference > 0 ? validationCheck.daysDifference : 0;
 
       const result: KitValidationResult = {
         kitNumber,
-        isGenuine: isWithinWindow,
-        expectedOrderDate: expectedDate,
+        isGenuine: validationCheck.isOnTime,
+        expectedOrderDate: validationCheck.expectedDate,
         actualOrderDate,
         daysEarly,
         daysLate,
-        isWithinWindow,
+        isWithinWindow: validationCheck.isOnTime,
       };
 
-      if (isWithinWindow) {
+      if (validationCheck.isOnTime) {
         genuineKits.push(kitNumber);
       } else {
         invalidKits.push(kitNumber);

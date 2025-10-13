@@ -44,6 +44,12 @@ export class User {
   @Column({ type: 'varchar', length: 100, nullable: true })
   designation: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  team: string;
+
+  @Column({ type: 'int', nullable: true })
+  maxDailyTickets: number;
+
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 
@@ -55,6 +61,9 @@ export class User {
 
   @OneToMany('Ticket', 'processedByUser')
   processedTickets: any[];
+
+  @OneToMany('Appointment', 'assignedToUser')
+  appointments: any[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -24,7 +24,6 @@ export class TransactionController {
     const transactions = await this.transactionRepository.find({
       where: { customerId },
       order: { createdAt: 'DESC' },
-      relations: ['order'],
     });
 
     const payments = transactions.filter((t) => !t.isRefund);
@@ -50,14 +49,6 @@ export class TransactionController {
     };
   }
 
-  @Get('order/:orderId')
-  async getOrderTransactions(@Param('orderId') orderId: string) {
-    return await this.transactionRepository.find({
-      where: { orderId },
-      order: { createdAt: 'DESC' },
-    });
-  }
-
   @Get('refunds')
   async getRefunds(@Query('customerId') customerId?: string) {
     const where: any = { isRefund: true };
@@ -68,7 +59,7 @@ export class TransactionController {
     return await this.transactionRepository.find({
       where,
       order: { createdAt: 'DESC' },
-      relations: ['customer', 'order'],
+      relations: ['customer'],
     });
   }
 
@@ -83,7 +74,7 @@ export class TransactionController {
   async getTransaction(@Param('id') id: string) {
     return await this.transactionRepository.findOne({
       where: { id },
-      relations: ['customer', 'order'],
+      relations: ['customer'],
     });
   }
 }

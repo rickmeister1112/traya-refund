@@ -29,9 +29,6 @@ export class PrescriptionProduct {
   @JoinColumn({ name: 'productId' })
   product: Product;
 
-  @Column({ type: 'int' })
-  kitNumber: number;
-
   @Column({ type: 'int', default: 1 })
   quantity: number;
 

@@ -10,9 +10,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Customer } from './customer.entity';
-import { Order } from './order.entity';
 import { Doctor } from './doctor.entity';
-import { Agent } from './agent.entity';
 import { User } from './user.entity';
 import {
   TicketCategory,
@@ -33,16 +31,16 @@ export class Ticket {
   @Column({ type: 'uuid' })
   customerId: string;
 
-  @ManyToOne(() => Customer, (customer) => customer.orders)
+  @ManyToOne(() => Customer, (customer) => customer.tickets)
   @JoinColumn({ name: 'customerId' })
   customer: Customer;
 
   @Column({ type: 'uuid', nullable: true })
-  orderId: string;
+  prescriptionId: string;
 
-  @ManyToOne(() => Order)
-  @JoinColumn({ name: 'orderId' })
-  order: Order;
+  @ManyToOne('CustomerPrescription', { nullable: true })
+  @JoinColumn({ name: 'prescriptionId' })
+  prescription: any;
 
   @Column({
     type: 'enum',
@@ -114,13 +112,6 @@ export class Ticket {
   assignedToDoctor: Doctor;
 
   @Column({ type: 'uuid', nullable: true })
-  assignedToAgentId: string;
-
-  @ManyToOne(() => Agent, (agent) => agent.assignedTickets, { nullable: true })
-  @JoinColumn({ name: 'assignedToAgentId' })
-  assignedToAgent: Agent;
-
-  @Column({ type: 'uuid', nullable: true })
   assignedToUserId: string;
 
   @ManyToOne(() => User, (user) => user.assignedTickets, { nullable: true })
@@ -139,13 +130,6 @@ export class Ticket {
   @ManyToOne(() => Doctor, (doctor) => doctor.processedTickets, { nullable: true })
   @JoinColumn({ name: 'processedByDoctorId' })
   processedByDoctor: Doctor;
-
-  @Column({ type: 'uuid', nullable: true })
-  processedByAgentId: string;
-
-  @ManyToOne(() => Agent, (agent) => agent.processedTickets, { nullable: true })
-  @JoinColumn({ name: 'processedByAgentId' })
-  processedByAgent: Agent;
 
   @Column({ type: 'uuid', nullable: true })
   processedByHODId: string;

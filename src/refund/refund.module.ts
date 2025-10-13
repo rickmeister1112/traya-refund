@@ -2,10 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TicketController } from './controllers/ticket.controller';
 import { DoctorController } from './controllers/doctor.controller';
-import { AgentController } from './controllers/agent.controller';
 import { CustomerController } from './controllers/customer.controller';
-import { OrderController } from './controllers/order.controller';
-import { CallLogController } from './controllers/call-log.controller';
 import { PrescriptionController } from './controllers/prescription.controller';
 import { OrderHistoryController } from './controllers/order-history.controller';
 import { ProductController } from './controllers/product.controller';
@@ -19,17 +16,16 @@ import { ActivityController } from './controllers/activity.controller';
 import { KitManagementController } from './controllers/kit-management.controller';
 import { TreatmentPlanController } from './controllers/treatment-plan.controller';
 import { AppointmentController } from './controllers/appointment.controller';
+import { PaymentTransactionController } from './controllers/payment-transaction.controller';
 import {
   Customer,
-  Order,
   Ticket,
   Transaction,
-  CallLog,
+  PaymentTransaction,
   Appointment,
   BankDetails,
   Communication,
   Doctor,
-  Agent,
   HairCoach,
   HairCoachCall,
   DoctorCall,
@@ -43,7 +39,6 @@ import {
   TreatmentPlan,
 } from './entities';
 import {
-  EligibilityEngineService,
   TicketService,
   AppointmentService,
   CommunicationService,
@@ -56,20 +51,19 @@ import { PrescriptionTrackerService } from './services/prescription-tracker.serv
 import { ActivityTrackerService } from './services/activity-tracker.service';
 import { KitManagementService } from './services/kit-management.service';
 import { KitValidationService } from './services/kit-validation.service';
+import { PaymentTransactionService } from './services/payment-transaction.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Customer,
-      Order,
       Ticket,
       Transaction,
-      CallLog,
+      PaymentTransaction,
       Appointment,
       BankDetails,
       Communication,
       Doctor,
-      Agent,
       HairCoach,
       HairCoachCall,
       DoctorCall,
@@ -87,14 +81,12 @@ import { KitValidationService } from './services/kit-validation.service';
   controllers: [
     TicketController,
     DoctorController,
-    AgentController,
     HairCoachController,
     UserController,
     UserTypeController,
     TransactionController,
+    PaymentTransactionController,
     CustomerController,
-    OrderController,
-    CallLogController,
     PrescriptionController,
     OrderHistoryController,
     ProductController,
@@ -105,7 +97,6 @@ import { KitValidationService } from './services/kit-validation.service';
     AppointmentController,
   ],
   providers: [
-    EligibilityEngineService,
     EligibilityEngineV2Service,
     TicketService,
     AppointmentService,
@@ -117,9 +108,9 @@ import { KitValidationService } from './services/kit-validation.service';
     ActivityTrackerService,
     KitManagementService,
     KitValidationService,
+    PaymentTransactionService,
   ],
   exports: [
-    EligibilityEngineService,
     EligibilityEngineV2Service,
     TicketService,
     AppointmentService,

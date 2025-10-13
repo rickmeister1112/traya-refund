@@ -21,7 +21,7 @@ export class Customer {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   password: string;
 
   @Column({ type: 'varchar', length: 15, unique: true })
@@ -42,9 +42,6 @@ export class Customer {
   @ManyToOne('HairCoach', 'assignedCustomers', { nullable: true })
   @JoinColumn({ name: 'assignedHairCoachId' })
   assignedHairCoach: any;
-
-  @OneToMany('Order', 'customer')
-  orders: any[];
 
   @OneToMany('Ticket', 'customer')
   tickets: any[];

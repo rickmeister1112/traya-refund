@@ -25,7 +25,7 @@ export class ScheduleFollowUpDto {
 
   @IsOptional()
   @IsUUID()
-  assignedToAgentId?: string;
+  assignedToUserId?: string;
 
   @IsOptional()
   @IsUUID()

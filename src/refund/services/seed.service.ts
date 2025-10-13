@@ -1,15 +1,13 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Doctor, Agent, Product, HairCoach, UserType, User } from '../entities';
+import { Doctor, Product, HairCoach, UserType, User } from '../entities';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
   constructor(
     @InjectRepository(Doctor)
     private doctorRepository: Repository<Doctor>,
-    @InjectRepository(Agent)
-    private agentRepository: Repository<Agent>,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
     @InjectRepository(HairCoach)
@@ -26,7 +24,6 @@ export class SeedService implements OnModuleInit {
     await this.seedUsers();
     await this.seedHairCoaches();
     await this.seedDoctors();
-    await this.seedAgents();
   }
 
   private async seedUserTypes() {
@@ -69,10 +66,24 @@ export class SeedService implements OnModuleInit {
         permissions: JSON.stringify(['view_reports', 'view_analytics']),
         isActive: true,
       },
+      {
+        code: 'complaints_agent',
+        name: 'Complaints Agent',
+        description: 'Handles customer complaints and refund requests',
+        permissions: JSON.stringify(['view_tickets', 'process_tickets', 'view_customers', 'create_communications']),
+        isActive: true,
+      },
+      {
+        code: 'complaints_lead',
+        name: 'Complaints Team Lead',
+        description: 'Lead for complaints team with elevated permissions',
+        permissions: JSON.stringify(['view_tickets', 'process_tickets', 'view_customers', 'create_communications', 'approve_refunds']),
+        isActive: true,
+      },
     ];
 
     await this.userTypeRepository.save(userTypes);
-    console.log('✅ Seeded 5 user types');
+    console.log('✅ Seeded 7 user types');
   }
 
   private async seedUsers() {
@@ -88,6 +99,12 @@ export class SeedService implements OnModuleInit {
     const adminType = await this.userTypeRepository.findOne({
       where: { code: 'admin' },
     });
+    const complaintsAgentType = await this.userTypeRepository.findOne({
+      where: { code: 'complaints_agent' },
+    });
+    const complaintsLeadType = await this.userTypeRepository.findOne({
+      where: { code: 'complaints_lead' },
+    });
 
     const users = [
 
@@ -95,6 +112,7 @@ export class SeedService implements OnModuleInit {
         employeeId: 'FIN001',
         name: 'Rahul Finance',
         email: 'rahul.finance@traya.health',
+        password: '$2b$10$defaultPassword123',
         phone: '9876543250',
         userTypeId: financeType.id,
         department: 'finance',
@@ -105,6 +123,7 @@ export class SeedService implements OnModuleInit {
         employeeId: 'FIN002',
         name: 'Priya Finance',
         email: 'priya.finance@traya.health',
+        password: '$2b$10$defaultPassword123',
         phone: '9876543251',
         userTypeId: financeType.id,
         department: 'finance',
@@ -115,6 +134,7 @@ export class SeedService implements OnModuleInit {
         employeeId: 'FIN003',
         name: 'Finance Team Lead',
         email: 'finance@traya.health',
+        password: '$2b$10$defaultPassword123',
         phone: '9876543252',
         userTypeId: financeType.id,
         department: 'finance',
@@ -126,6 +146,7 @@ export class SeedService implements OnModuleInit {
         employeeId: 'OPS001',
         name: 'Operations Manager',
         email: 'operations@traya.health',
+        password: '$2b$10$defaultPassword123',
         phone: '9876543260',
         userTypeId: operationsType.id,
         department: 'operations',
@@ -136,6 +157,7 @@ export class SeedService implements OnModuleInit {
         employeeId: 'OPS002',
         name: 'Inventory Manager',
         email: 'inventory@traya.health',
+        password: '$2b$10$defaultPassword123',
         phone: '9876543261',
         userTypeId: operationsType.id,
         department: 'operations',
@@ -147,16 +169,57 @@ export class SeedService implements OnModuleInit {
         employeeId: 'ADM001',
         name: 'System Admin',
         email: 'admin@traya.health',
+        password: '$2b$10$defaultPassword123',
         phone: '9876543270',
         userTypeId: adminType.id,
         department: 'admin',
         designation: 'admin',
         isActive: true,
       },
+
+      {
+        employeeId: 'AGT001',
+        name: 'Ravi Kumar',
+        email: 'agent.ravi@traya.health',
+        password: '$2b$10$defaultPassword123',
+        phone: '9876543220',
+        userTypeId: complaintsAgentType.id,
+        department: 'complaints',
+        designation: 'complaints_agent',
+        team: 'complaints',
+        maxDailyTickets: 50,
+        isActive: true,
+      },
+      {
+        employeeId: 'AGT002',
+        name: 'Priya Sharma',
+        email: 'agent.priya@traya.health',
+        password: '$2b$10$defaultPassword123',
+        phone: '9876543221',
+        userTypeId: complaintsAgentType.id,
+        department: 'complaints',
+        designation: 'complaints_agent',
+        team: 'complaints',
+        maxDailyTickets: 50,
+        isActive: true,
+      },
+      {
+        employeeId: 'AGT003',
+        name: 'Complaints Team Lead',
+        email: 'complaints@traya.health',
+        password: '$2b$10$defaultPassword123',
+        phone: '9876543222',
+        userTypeId: complaintsLeadType.id,
+        department: 'complaints',
+        designation: 'team_lead',
+        team: 'complaints',
+        maxDailyTickets: 100,
+        isActive: true,
+      },
     ];
 
     await this.userRepository.save(users);
-    console.log('✅ Seeded 6 users (3 finance, 2 operations, 1 admin)');
+    console.log('✅ Seeded 9 users (3 finance, 2 operations, 1 admin, 3 complaints agents)');
   }
 
   private async seedHairCoaches() {
@@ -244,6 +307,7 @@ export class SeedService implements OnModuleInit {
         price: 2000,
         description: 'Ayurvedic supplement for hair growth',
         isKitProduct: true,
+        isMandatory: true,
         durationDays: 30,
       },
       {
@@ -254,6 +318,7 @@ export class SeedService implements OnModuleInit {
         price: 1500,
         description: 'Vitamin supplement for hair health',
         isKitProduct: true,
+        isMandatory: true,
         durationDays: 30,
       },
       {
@@ -264,6 +329,7 @@ export class SeedService implements OnModuleInit {
         price: 1800,
         description: 'Complete health supplement',
         isKitProduct: true,
+        isMandatory: false,
         durationDays: 30,
       },
       {
@@ -274,6 +340,7 @@ export class SeedService implements OnModuleInit {
         price: 1200,
         description: 'Cholesterol management',
         isKitProduct: true,
+        isMandatory: false,
         durationDays: 30,
       },
 
@@ -285,6 +352,7 @@ export class SeedService implements OnModuleInit {
         price: 800,
         description: 'Anti-hair fall shampoo',
         isKitProduct: true,
+        isMandatory: true,
         durationDays: 30,
       },
       {
@@ -295,6 +363,7 @@ export class SeedService implements OnModuleInit {
         price: 750,
         description: 'Strengthening conditioner',
         isKitProduct: true,
+        isMandatory: false,
         durationDays: 30,
       },
       {
@@ -305,6 +374,7 @@ export class SeedService implements OnModuleInit {
         price: 850,
         description: 'Treats dandruff and scalp issues',
         isKitProduct: false,
+        isMandatory: false,
         durationDays: 30,
       },
 
@@ -316,6 +386,7 @@ export class SeedService implements OnModuleInit {
         price: 1000,
         description: 'Nourishing scalp oil',
         isKitProduct: true,
+        isMandatory: true,
         durationDays: 30,
       },
       {
@@ -326,6 +397,7 @@ export class SeedService implements OnModuleInit {
         price: 1200,
         description: 'Active ingredients for hair growth',
         isKitProduct: true,
+        isMandatory: false,
         durationDays: 30,
       },
       {
@@ -336,6 +408,7 @@ export class SeedService implements OnModuleInit {
         price: 900,
         description: 'Deep nourishment oil',
         isKitProduct: false,
+        isMandatory: false,
         durationDays: 45,
       },
 
@@ -347,6 +420,7 @@ export class SeedService implements OnModuleInit {
         price: 1600,
         description: 'PCOS management supplement',
         isKitProduct: true,
+        isMandatory: false,
         durationDays: 30,
       },
       {
@@ -357,6 +431,7 @@ export class SeedService implements OnModuleInit {
         price: 1600,
         description: 'Thyroid management supplement',
         isKitProduct: true,
+        isMandatory: false,
         durationDays: 30,
       },
     ];
@@ -423,47 +498,6 @@ export class SeedService implements OnModuleInit {
 
     await this.doctorRepository.save(doctors);
     console.log('✅ Seeded 3 doctors');
-  }
-
-  private async seedAgents() {
-    const count = await this.agentRepository.count();
-    if (count > 0) return;
-
-    const agents = [
-      {
-        employeeId: 'AGT001',
-        name: 'Ravi Kumar',
-        email: 'agent.ravi@traya.health',
-        phone: '9876543220',
-        role: 'complaints_agent',
-        team: 'complaints',
-        isActive: true,
-        maxDailyTickets: 50,
-      },
-      {
-        employeeId: 'AGT002',
-        name: 'Priya Sharma',
-        email: 'agent.priya@traya.health',
-        phone: '9876543221',
-        role: 'complaints_agent',
-        team: 'complaints',
-        isActive: true,
-        maxDailyTickets: 50,
-      },
-      {
-        employeeId: 'AGT003',
-        name: 'Complaints Team Lead',
-        email: 'complaints@traya.health',
-        phone: '9876543222',
-        role: 'complaints_lead',
-        team: 'complaints',
-        isActive: true,
-        maxDailyTickets: 100,
-      },
-    ];
-
-    await this.agentRepository.save(agents);
-    console.log('✅ Seeded 3 agents');
   }
 
 }

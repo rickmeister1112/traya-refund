@@ -12,6 +12,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OrderHistory, Customer, CustomerPrescription, Product } from '../entities';
+import { KitCalculator } from '../utils/kit-calculator.util';
 
 @Controller('order-history')
 export class OrderHistoryController {
@@ -34,7 +35,6 @@ export class OrderHistoryController {
       customerId: string;
       prescriptionId: string;
       productId: string;
-      kitNumber: number;
       quantity: number;
       paymentMode: string;
       isFreeKit?: boolean;
@@ -53,7 +53,6 @@ export class OrderHistoryController {
       customerId: data.customerId,
       prescriptionId: data.prescriptionId,
       productId: data.productId,
-      kitNumber: data.kitNumber,
       quantity: data.quantity,
       price: product.price,
       totalAmount,
@@ -70,12 +69,10 @@ export class OrderHistoryController {
   async getAllOrders(
     @Query('customerId') customerId?: string,
     @Query('prescriptionId') prescriptionId?: string,
-    @Query('kitNumber') kitNumber?: number,
   ) {
     const where: any = {};
     if (customerId) where.customerId = customerId;
     if (prescriptionId) where.prescriptionId = prescriptionId;
-    if (kitNumber) where.kitNumber = Number(kitNumber);
 
     return await this.orderHistoryRepository.find({
       where,
@@ -89,7 +86,7 @@ export class OrderHistoryController {
     return await this.orderHistoryRepository.find({
       where: { customerId },
       relations: ['product', 'prescription'],
-      order: { kitNumber: 'ASC', orderedAt: 'ASC' },
+      order: { orderedAt: 'ASC' },
     });
   }
 
@@ -98,18 +95,7 @@ export class OrderHistoryController {
     return await this.orderHistoryRepository.find({
       where: { prescriptionId },
       relations: ['product'],
-      order: { kitNumber: 'ASC' },
-    });
-  }
-
-  @Get('prescription/:prescriptionId/kit/:kitNumber')
-  async getKitOrders(
-    @Param('prescriptionId') prescriptionId: string,
-    @Param('kitNumber') kitNumber: number,
-  ) {
-    return await this.orderHistoryRepository.find({
-      where: { prescriptionId, kitNumber: Number(kitNumber) },
-      relations: ['product'],
+      order: { orderedAt: 'ASC' },
     });
   }
 
@@ -136,14 +122,31 @@ export class OrderHistoryController {
       where: { id: prescriptionId },
     });
 
+    if (!prescription || !prescription.planStartedAt) {
+      return {
+        prescriptionId,
+        treatmentDurationMonths: prescription?.treatmentDurationMonths || 0,
+        requiredKits: prescription?.requiredKits || 0,
+        kitStatus: {},
+        message: 'Prescription has not started yet (no kits delivered)',
+      };
+    }
+
     const orders = await this.orderHistoryRepository.find({
       where: { prescriptionId, isVoid: false },
       relations: ['product'],
     });
 
+    // Group orders by calculated kit number
+    const kitGroups = KitCalculator.groupOrdersByKit(
+      orders.filter(o => o.deliveredAt),
+      prescription.planStartedAt,
+      30,
+    );
+
     const kitStatus = {};
     for (let i = 1; i <= prescription.requiredKits; i++) {
-      const kitOrders = orders.filter((o) => o.kitNumber === i);
+      const kitOrders = kitGroups.get(i) || [];
       const delivered = kitOrders.filter((o) => o.isDelivered);
 
       kitStatus[`kit_${i}`] = {

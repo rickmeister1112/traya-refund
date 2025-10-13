@@ -5,6 +5,10 @@ export class CreateOrderDto {
   @IsUUID()
   customerId: string;
 
+  @IsOptional()
+  @IsUUID()
+  prescriptionId?: string;
+
   @IsNotEmpty()
   @IsNumber()
   totalAmount: number;
