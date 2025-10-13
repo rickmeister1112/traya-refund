@@ -3,8 +3,16 @@ import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { CustomerSignupDto, UserSignupDto } from '../dto/signup.dto';
+import { Public } from '../decorators/public.decorator';
 
+/**
+ * Authentication Controller
+ * 
+ * All routes in this controller are marked as @Public() so they are
+ * accessible even when AUTH_ENABLED=true
+ */
 @Controller('auth')
+@Public() // Mark entire controller as public
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
