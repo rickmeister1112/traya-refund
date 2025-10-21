@@ -1,7 +1,7 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
+  PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
@@ -13,6 +13,18 @@ export class Doctor {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @Column({ type: 'varchar', length: 50, unique: true })
   employeeId: string;
 
@@ -22,14 +34,11 @@ export class Doctor {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @Column({ type: 'varchar', length: 15, nullable: true })
+  @Column({ type: 'varchar', length: 20, unique: true })
   phone: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   specialization: string;
-
-  @Column({ type: 'boolean', default: true })
-  isActive: boolean;
 
   @Column({ type: 'boolean', default: false })
   isHOD: boolean;
@@ -51,14 +60,5 @@ export class Doctor {
 
   @OneToMany('Appointment', 'assignedToDoctor')
   appointments: any[];
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @DeleteDateColumn()
-  deletedAt: Date;
 }
 

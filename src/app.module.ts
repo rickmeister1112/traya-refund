@@ -25,7 +25,7 @@ import { GlobalAuthGuard } from './refund/guards/global-auth.guard';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: false, // Disabled to prevent schema conflicts
         logging: configService.get('NODE_ENV') === 'development',
       }),
       inject: [ConfigService],
