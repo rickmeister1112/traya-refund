@@ -6,6 +6,7 @@ dist/
 *.sql
 *.sh
 *.md
+!TRAYA_REFUND_SYSTEM_DOCUMENTATION.md
 *.json
 
 !package.json
